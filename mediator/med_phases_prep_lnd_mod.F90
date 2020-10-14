@@ -36,6 +36,7 @@ module med_phases_prep_lnd_mod
   use glc_elevclass_mod     , only : glc_mean_elevation_virtual
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
+  use med_map_packed_mod
 
   implicit none
   private
@@ -80,6 +81,7 @@ contains
     integer                   :: n1,ncnt
     real(r8)                  :: nextsw_cday
     logical                   :: first_call = .true.
+    logical                   :: do_packed_mapping = .true.
     character(len=*), parameter :: subname='(med_phases_prep_lnd)'
     !---------------------------------------
 
@@ -114,28 +116,51 @@ contains
        !--- map to create FBimp(:,complnd)
        !---------------------------------------
 
-       do n1 = 1,ncomps
-          if (is_local%wrap%med_coupling_active(n1,complnd)) then
-             ! The following will map all atm->lnd, rof->lnd, and 
-             ! glc->lnd only for Sg_icemask_field and Sg_icemask_coupled_fluxes
-             call med_map_FB_Regrid_Norm( &
-                  fldsSrc=fldListFr(n1)%flds, &
-                  srccomp=n1, destcomp=complnd, &
-                  FBSrc=is_local%wrap%FBImp(n1,n1), &
-                  FBDst=is_local%wrap%FBImp(n1,complnd), &
-                  FBFracSrc=is_local%wrap%FBFrac(n1), &
-                  FBNormOne=is_local%wrap%FBNormOne(n1,complnd,:), &
-                  RouteHandles=is_local%wrap%RH(n1,complnd,:), &
-                  string=trim(compname(n1))//'2'//trim(compname(complnd)), rc=rc)
+       if (do_packed_mapping) then
+          if (first_call) then
+             ! TODO: this is hard-wired to redist for now
+             call med_map_packed_fieldbundles_create(&
+                  flds_scalar_name=is_local%wrap%flds_scalar_name, &
+                  fldsSrc=fldListFr(compatm)%flds, &
+                  FBSrc=is_local%wrap%FBImp(compatm,compatm), &
+                  FBSrc_packed=is_local%wrap%FBImp_packed(compatm,compatm,:), &
+                  FBDst_packed=is_local%wrap%FBImp_packed(compatm,complnd,:), &
+                  FBDst=is_local%wrap%FBImp(compatm,complnd), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
-       enddo
+          call med_map_packed_fieldbundles( &
+               flds_scalar_name=is_local%wrap%flds_scalar_name, &
+               FBSrc=is_local%wrap%FBImp(compatm,compatm), &
+               FBSrc_packed=is_local%wrap%FBImp_packed(compatm,compatm,:), &
+               FBDst_packed=is_local%wrap%FBImp_packed(compatm,complnd,:), &
+               FBDst=is_local%wrap%FBImp(compatm,complnd), &
+               RouteHandles=is_local%wrap%RH(compatm,complnd,:), rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       else
+          do n1 = 1,ncomps
+             if (is_local%wrap%med_coupling_active(n1,complnd)) then
+                ! The following will map all atm->lnd, rof->lnd, and
+                ! glc->lnd only for Sg_icemask_field and Sg_icemask_coupled_fluxes
+                call med_map_FB_Regrid_Norm( &
+                     fldsSrc=fldListFr(n1)%flds, &
+                     srccomp=n1, destcomp=complnd, &
+                     FBSrc=is_local%wrap%FBImp(n1,n1), &
+                     FBDst=is_local%wrap%FBImp(n1,complnd), &
+                     FBFracSrc=is_local%wrap%FBFrac(n1), &
+                     FBNormOne=is_local%wrap%FBNormOne(n1,complnd,:), &
+                     RouteHandles=is_local%wrap%RH(n1,complnd,:), &
+                     string=trim(compname(n1))//'2'//trim(compname(complnd)), rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+             end if
+          enddo
+       end if
 
        !---------------------------------------
        !--- auto merges to create FBExp(complnd)
        !---------------------------------------
 
-       ! The following will merge all fields in fldsSrc 
+       ! The following will merge all fields in fldsSrc
        ! (for glc these are Sg_icemask and Sg_icemask_coupled_fluxes)
        call med_merge_auto(trim(compname(complnd)), &
             is_local%wrap%FBExp(complnd), &
@@ -145,7 +170,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        !---------------------------------------
-       !--- custom calculations 
+       !--- custom calculations
        !---------------------------------------
 
        ! The following is only done if glc->lnd coupling is active
@@ -393,7 +418,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call FB_getFldPtr(is_local%wrap%FBImp(compglc,compglc), trim(Sg_frac), fldptr1=frac_g, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_getFldPtr(FBglc_ec, 'field_ec', fldptr2=frac_g_ec, rc=rc) 
+    call FB_getFldPtr(FBglc_ec, 'field_ec', fldptr2=frac_g_ec, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     ! compute frac_g_ec
     call glc_get_fractional_icecov(ungriddedCount-1, topo_g, frac_g, frac_g_ec, logunit)
