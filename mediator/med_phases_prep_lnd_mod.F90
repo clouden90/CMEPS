@@ -120,21 +120,19 @@ contains
           if (first_call) then
              ! TODO: this is hard-wired to redist for now
              call med_map_packed_fieldbundles_create(&
-                  flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   fldsSrc=fldListFr(compatm)%flds, &
                   FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-                  FBSrc_packed=is_local%wrap%FBImp_packed(compatm,compatm,:), &
-                  FBDst_packed=is_local%wrap%FBImp_packed(compatm,complnd,:), &
-                  FBDst=is_local%wrap%FBImp(compatm,complnd), rc=rc)
+                  FBDst=is_local%wrap%FBImp(compatm,complnd), &
+                  fieldsrc_packed=is_local%wrap%fieldsrc_packed(compatm,compatm,:), &
+                  fielddst_packed=is_local%wrap%fielddst_packed(compatm,complnd,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
           call med_map_packed_fieldbundles( &
-               flds_scalar_name=is_local%wrap%flds_scalar_name, &
                FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-               FBSrc_packed=is_local%wrap%FBImp_packed(compatm,compatm,:), &
-               FBDst_packed=is_local%wrap%FBImp_packed(compatm,complnd,:), &
                FBDst=is_local%wrap%FBImp(compatm,complnd), &
-               RouteHandles=is_local%wrap%RH(compatm,complnd,:), rc=rc)
+               fieldsrc_packed=is_local%wrap%fieldsrc_packed(compatm,compatm,:), &
+               fielddst_packed=is_local%wrap%fielddst_packed(compatm,complnd,:), &
+               routehandles=is_local%wrap%RH(compatm,complnd,:), rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else
           do n1 = 1,ncomps
@@ -179,7 +177,6 @@ contains
           if (first_call) then
              call med_map_glc2lnd_init(gcomp, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             first_call = .false.
           end if
 
           ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
@@ -227,6 +224,9 @@ contains
 
     end if
 
+    if (first_call) then
+       first_call = .false.
+    end if
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
