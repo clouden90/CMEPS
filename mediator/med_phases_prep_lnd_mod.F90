@@ -36,7 +36,9 @@ module med_phases_prep_lnd_mod
   use glc_elevclass_mod     , only : glc_mean_elevation_virtual
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
-  use med_map_packed_mod
+
+  use med_map_packed_mod    , only : med_map_packed_field_create
+  use med_map_packed_mod    , only : med_map_packed_field_map
 
   implicit none
   private
@@ -118,22 +120,30 @@ contains
 
        if (do_packed_mapping) then
           if (first_call) then
-             ! TODO: this is hard-wired to redist for now
-             call med_map_packed_fieldbundles_create(&
-                  fldsSrc=fldListFr(compatm)%flds, &
-                  FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-                  FBDst=is_local%wrap%FBImp(compatm,complnd), &
-                  fieldsrc_packed=is_local%wrap%fieldsrc_packed(compatm,compatm,:), &
-                  fielddst_packed=is_local%wrap%fielddst_packed(compatm,complnd,:), rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             do n1 = 1,ncomps
+                if (is_local%wrap%med_coupling_active(n1,complnd)) then
+                   call med_map_packed_field_create(complnd, &
+                        is_local%wrap%flds_scalar_name, &
+                        fldsSrc=fldListFr(n1)%flds, &
+                        FBSrc=is_local%wrap%FBImp(n1,n1), &
+                        FBDst=is_local%wrap%FBImp(n1,complnd), &
+                        packed_data=is_local%wrap%packed_data(n1,complnd,:), rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                end if
+             end do
           end if
-          call med_map_packed_fieldbundles( &
-               FBSrc=is_local%wrap%FBImp(compatm,compatm), &
-               FBDst=is_local%wrap%FBImp(compatm,complnd), &
-               fieldsrc_packed=is_local%wrap%fieldsrc_packed(compatm,compatm,:), &
-               fielddst_packed=is_local%wrap%fielddst_packed(compatm,complnd,:), &
-               routehandles=is_local%wrap%RH(compatm,complnd,:), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          do n1 = 1,ncomps
+             if (is_local%wrap%med_coupling_active(n1,complnd)) then
+                call med_map_packed_field_map( &
+                     FBSrc=is_local%wrap%FBImp(n1,n1), &
+                     FBDst=is_local%wrap%FBImp(n1,complnd), &
+                     FBFracSrc=is_local%wrap%FBFrac(n1), &
+                     FBNormOne=is_local%wrap%FBNormOne(n1,complnd,:), &
+                     packed_data=is_local%wrap%packed_data(n1,complnd,:), &
+                     routehandles=is_local%wrap%RH(n1,complnd,:), rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             end if
+          end do
        else
           do n1 = 1,ncomps
              if (is_local%wrap%med_coupling_active(n1,complnd)) then
