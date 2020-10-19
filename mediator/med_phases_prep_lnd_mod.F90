@@ -18,9 +18,7 @@ module med_phases_prep_lnd_mod
   use esmFlds               , only : complnd, compatm, compglc, ncomps, compname, mapconsd
   use esmFlds               , only : fldListFr, fldListTo
   use esmFlds               , only : med_fldlist_type
-  use med_methods_mod       , only : FB_getFieldN    => med_methods_FB_getFieldN
   use med_methods_mod       , only : FB_getFldPtr    => med_methods_FB_getFldPtr
-  use med_methods_mod       , only : FB_getNumFlds   => med_methods_FB_getNumFlds
   use med_methods_mod       , only : FB_init         => med_methods_FB_init
   use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_FldChk       => med_methods_FB_FldChk
@@ -28,17 +26,17 @@ module med_phases_prep_lnd_mod
   use med_methods_mod       , only : State_SetScalar => med_methods_State_SetScalar
   use med_utils_mod         , only : chkerr          => med_utils_ChkErr
   use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
-  use med_internalstate_mod , only : InternalState, logunit
+  use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_map_mod           , only : med_map_FB_Regrid_Norm, med_map_RH_is_created
   use med_map_mod           , only : med_map_routehandles_init
+  use med_map_packed_mod    , only : med_map_packed_field_create
+  use med_map_packed_mod    , only : med_map_packed_field_map
   use med_merge_mod         , only : med_merge_auto
   use glc_elevclass_mod     , only : glc_get_num_elevation_classes
   use glc_elevclass_mod     , only : glc_mean_elevation_virtual
   use glc_elevclass_mod     , only : glc_get_fractional_icecov
   use perf_mod              , only : t_startf, t_stopf
 
-  use med_map_packed_mod    , only : med_map_packed_field_create
-  use med_map_packed_mod    , only : med_map_packed_field_map
 
   implicit none
   private
@@ -109,60 +107,26 @@ contains
     ! Note - the scalar field has been removed from all mediator field bundles - so this is why we check if the
     ! fieldCount is 0 and not 1 here
 
-    call FB_getNumFlds(is_local%wrap%FBExp(complnd), trim(subname)//"FBexp(complnd)", ncnt, rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldCount=ncnt, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     if (ncnt > 0) then
 
        !---------------------------------------
        !--- map to create FBimp(:,complnd)
        !---------------------------------------
 
-       if (do_packed_mapping) then
-          if (first_call) then
-             do n1 = 1,ncomps
-                if (is_local%wrap%med_coupling_active(n1,complnd)) then
-                   call med_map_packed_field_create(complnd, &
-                        is_local%wrap%flds_scalar_name, &
-                        fldsSrc=fldListFr(n1)%flds, &
-                        FBSrc=is_local%wrap%FBImp(n1,n1), &
-                        FBDst=is_local%wrap%FBImp(n1,complnd), &
-                        packed_data=is_local%wrap%packed_data(n1,complnd,:), rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                end if
-             end do
+       do n1 = 1,ncomps
+          if (is_local%wrap%med_coupling_active(n1,complnd)) then
+             call med_map_packed_field_map( &
+                  FBSrc=is_local%wrap%FBImp(n1,n1), &
+                  FBDst=is_local%wrap%FBImp(n1,complnd), &
+                  FBFracSrc=is_local%wrap%FBFrac(n1), &
+                  FBNormOne=is_local%wrap%FBNormOne(n1,complnd,:), &
+                  packed_data=is_local%wrap%packed_data(n1,complnd,:), &
+                  routehandles=is_local%wrap%RH(n1,complnd,:), rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
-          do n1 = 1,ncomps
-             if (is_local%wrap%med_coupling_active(n1,complnd)) then
-                call med_map_packed_field_map( &
-                     FBSrc=is_local%wrap%FBImp(n1,n1), &
-                     FBDst=is_local%wrap%FBImp(n1,complnd), &
-                     FBFracSrc=is_local%wrap%FBFrac(n1), &
-                     FBNormOne=is_local%wrap%FBNormOne(n1,complnd,:), &
-                     packed_data=is_local%wrap%packed_data(n1,complnd,:), &
-                     routehandles=is_local%wrap%RH(n1,complnd,:), rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
-          end do
-       else
-          do n1 = 1,ncomps
-             if (is_local%wrap%med_coupling_active(n1,complnd)) then
-                ! The following will map all atm->lnd, rof->lnd, and
-                ! glc->lnd only for Sg_icemask_field and Sg_icemask_coupled_fluxes
-                call med_map_FB_Regrid_Norm( &
-                     fldsSrc=fldListFr(n1)%flds, &
-                     srccomp=n1, destcomp=complnd, &
-                     FBSrc=is_local%wrap%FBImp(n1,n1), &
-                     FBDst=is_local%wrap%FBImp(n1,complnd), &
-                     FBFracSrc=is_local%wrap%FBFrac(n1), &
-                     FBNormOne=is_local%wrap%FBNormOne(n1,complnd,:), &
-                     RouteHandles=is_local%wrap%RH(n1,complnd,:), &
-                     string=trim(compname(n1))//'2'//trim(compname(complnd)), rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-             end if
-          enddo
-       end if
+       end do
 
        !---------------------------------------
        !--- auto merges to create FBExp(complnd)
@@ -234,9 +198,7 @@ contains
 
     end if
 
-    if (first_call) then
-       first_call = .false.
-    end if
+    first_call = .false.
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
@@ -254,11 +216,13 @@ contains
     integer             , intent(out)   :: rc
 
     ! local variables
-    type(InternalState) :: is_local
-    type(ESMF_Field)    :: lfield
-    type(ESMF_Mesh)     :: lmesh_lnd
-    type(ESMF_Mesh)     :: lmesh_glc
-    integer             :: ungriddedUBound_output(1) ! currently the size must equal 1 for rank 2 fieldds
+    type(InternalState)       :: is_local
+    type(ESMF_Field)          :: lfield
+    type(ESMF_Mesh)           :: lmesh_lnd
+    type(ESMF_Mesh)           :: lmesh_glc
+    integer                   :: ungriddedUBound_output(1)
+    integer                   :: fieldCount
+    type(ESMF_Field), pointer :: fieldlist(:) => null()
     character(len=*) , parameter   :: subname='(med_map_glc2lnd_mod:med_map_glc2lnd_init)'
     !---------------------------------------
 
@@ -288,15 +252,23 @@ contains
     ! Get the glc and land meshes
     !---------------------------------------
 
-    call FB_getFieldN(is_local%wrap%FBExp(complnd), 1, field=lfield, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldCount=fieldCount, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    allocate(fieldlist(fieldcount))
+    call ESMF_FieldBundleGet(is_local%wrap%FBExp(complnd), fieldlist=fieldlist, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(fieldlist(1), mesh=lmesh_lnd, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, mesh=lmesh_lnd, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    deallocate(fieldlist)
 
-    call FB_getFieldN(is_local%wrap%FBImp(compglc,compglc), 1, field=lfield, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldCount=fieldCount, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    allocate(fieldlist(fieldcount))
+    call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), fieldlist=fieldlist, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(fieldlist(1), mesh=lmesh_glc, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_FieldGet(lfield, mesh=lmesh_glc, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    deallocate(fieldlist)
 
     ! -------------------------------
     ! Create module field bundles
