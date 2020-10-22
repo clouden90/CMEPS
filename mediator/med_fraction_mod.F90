@@ -106,7 +106,7 @@ module med_fraction_mod
   use med_methods_mod   , only : FB_getFldPtr   => med_methods_FB_getFldPtr
   use med_methods_mod   , only : FB_diagnose    => med_methods_FB_diagnose
   use med_methods_mod   , only : FB_fldChk      => med_methods_FB_fldChk
-  use med_map_mod       , only : med_map_fb_field_regrid
+  use med_map_mod       , only : med_map_fb_field_regrid, med_map_field
   use esmFlds           , only : ncomps
 
   implicit none
@@ -139,12 +139,12 @@ contains
 
     ! Initialize FBFrac(:) field bundles
 
-    use ESMF                  , only : ESMF_GridComp, ESMF_Field, ESMF_FieldGet
     use ESMF                  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_LOGMSG_ERROR
     use ESMF                  , only : ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF                  , only : ESMF_GridCompGet, ESMF_StateIsCreated
+    use ESMF                  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_StateIsCreated
     use ESMF                  , only : ESMF_FieldBundle, ESMF_FieldBundleIsCreated, ESMF_FieldBundleDestroy
     use ESMF                  , only : ESMF_FieldBundleGet   
+    use ESMF                  , only : ESMF_Field, ESMF_FieldGet
     use esmFlds               , only : coupling_mode
     use esmFlds               , only : compatm, compocn, compice, complnd
     use esmFlds               , only : comprof, compglc, compwav, compname
@@ -158,20 +158,22 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    type(InternalState)        :: is_local
-    real(R8), pointer          :: frac(:)
-    real(R8), pointer          :: ofrac(:)
-    real(R8), pointer          :: lfrac(:)
-    real(R8), pointer          :: ifrac(:)
-    real(R8), pointer          :: gfrac(:)
-    real(R8), pointer          :: rfrac(:)
-    real(R8), pointer          :: wfrac(:)
-    real(R8), pointer          :: Sl_lfrin(:)
-    real(R8), pointer          :: Si_imask(:)
-    real(R8), pointer          :: So_omask(:)
-    integer                    :: i,j,n,n1
-    integer                    :: maptype
-    type(ESMF_Field)           :: lfield
+    type(InternalState) :: is_local
+    type(ESMF_Field)    :: field_src
+    type(ESMF_Field)    :: field_dst
+    type(ESMF_Field)    :: lfield
+    real(R8), pointer   :: frac(:) => null()
+    real(R8), pointer   :: ofrac(:) => null()
+    real(R8), pointer   :: lfrac(:) => null()
+    real(R8), pointer   :: ifrac(:) => null()
+    real(R8), pointer   :: gfrac(:) => null()
+    real(R8), pointer   :: rfrac(:) => null()
+    real(R8), pointer   :: wfrac(:) => null()
+    real(R8), pointer   :: Sl_lfrin(:) => null()
+    real(R8), pointer   :: Si_imask(:) => null()
+    real(R8), pointer   :: So_omask(:) => null()
+    integer             :: i,j,n,n1
+    integer             :: maptype
     logical, save              :: first_call = .true.
     character(len=*),parameter :: subname='(med_fraction_init)'
     !---------------------------------------
@@ -323,11 +325,12 @@ contains
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
           end if
-          call med_map_fb_field_regrid(&
-               is_local%wrap%FBfrac(compocn), 'ofrac', &
-               is_local%wrap%FBfrac(compatm), 'ofrac', &
-               is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compocn), fieldname='ofrac', field=field_src, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), fieldname='ofrac', field=field_dst, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call med_map_field(field_src, field_dst, is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
 
        end if
     end if
