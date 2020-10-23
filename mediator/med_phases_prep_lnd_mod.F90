@@ -111,7 +111,7 @@ contains
                   FBSrc=is_local%wrap%FBImp(n1,n1), &
                   FBDst=is_local%wrap%FBImp(n1,complnd), &
                   FBFracSrc=is_local%wrap%FBFrac(n1), &
-                  FBNormOne=is_local%wrap%FBNormOne(n1,complnd,:), &
+                  field_normOne=is_local%wrap%field_normOne(n1,complnd,:), &
                   packed_data=is_local%wrap%packed_data(n1,complnd,:), &
                   routehandles=is_local%wrap%RH(n1,complnd,:), rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
