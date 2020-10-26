@@ -103,7 +103,6 @@ module med_fraction_mod
   use med_utils_mod     , only : chkErr         => med_utils_ChkErr
   use med_methods_mod   , only : FB_init        => med_methods_FB_init
   use med_methods_mod   , only : FB_reset       => med_methods_FB_reset
-  use med_methods_mod   , only : FB_getFldPtr   => med_methods_FB_getFldPtr
   use med_methods_mod   , only : FB_diagnose    => med_methods_FB_diagnose
   use med_methods_mod   , only : FB_fldChk      => med_methods_FB_fldChk
   use med_map_mod       , only : med_map_field
@@ -380,9 +379,14 @@ contains
        if (is_local%wrap%comp_present(compocn) .or. is_local%wrap%comp_present(compice)) then
 
           ! Ocean is present
-          call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
-          call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
-
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'lfrac', field=lfield, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=lfrac,  rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'ofrac', field=lfield, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=ofrac,  rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (is_local%wrap%comp_present(complnd)) then
              do n = 1,size(lfrac)
                 lfrac(n) = 1.0_R8 - ofrac(n)
@@ -418,8 +422,14 @@ contains
           call med_map_field(field_src, field_dst, is_local%wrap%RH(complnd,compatm,:), maptype, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'lfrac', lfrac, rc=rc)
-          call FB_getFldPtr(is_local%wrap%FBfrac(compatm), 'ofrac', ofrac, rc=rc)
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'lfrac', field=lfield, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=lfrac,  rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'ofrac', field=lfield, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=ofrac,  rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           do n = 1,size(lfrac)
              ofrac(n) = 1.0_R8 - lfrac(n)
              if (abs(ofrac(n)) < eps_fraclim) then
@@ -439,12 +449,20 @@ contains
        ! Set 'rfrac' in FBFrac(comprof)
        if ( FB_FldChk(is_local%wrap%FBfrac(comprof)       , 'rfrac', rc=rc) .and. &
             FB_FldChk(is_local%wrap%FBImp(comprof,comprof), 'frac' , rc=rc)) then
-          call FB_getFldPtr(is_local%wrap%FBfrac(comprof)       , 'rfrac', rfrac, rc=rc)
-          call FB_getFldPtr(is_local%wrap%FBImp(comprof,comprof), 'frac' , frac, rc=rc)
+          call ESMF_FieldBundleGet(is_local%wrap%FBImp(comprof,comprof), 'frac', field=lfield, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=frac,  rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(comprof), 'rfrac', field=lfield, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=rfrac,  rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           rfrac(:) = frac(:)
        else
           ! Set 'rfrac' in FBfrac(comprof) to 1.
-          call FB_getFldPtr(is_local%wrap%FBfrac(comprof), 'rfrac', rfrac, rc=rc)
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(comprof), 'rfrac', field=lfield, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=rfrac,  rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           rfrac(:) = 1.0_R8
        endif
@@ -476,12 +494,21 @@ contains
        ! Set 'gfrac' in FBFrac(compglc)
        if ( FB_FldChk(is_local%wrap%FBfrac(compglc)        , 'gfrac', rc=rc) .and. &
             FB_FldChk(is_local%wrap%FBImp(compglc, compglc), 'frac' , rc=rc)) then
-          call FB_getFldPtr(is_local%wrap%FBfrac(compglc)       , 'gfrac', gfrac, rc=rc)
-          call FB_getFldPtr(is_local%wrap%FBImp(compglc,compglc), 'frac' , frac, rc=rc)
+          call ESMF_FieldBundleGet(is_local%wrap%FBImp(compglc,compglc), 'frac', field=lfield, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=frac,  rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compglc), 'gfrac', field=lfield, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=gfrac,  rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           gfrac(:) = frac(:)
        else
           ! Set 'gfrac' in FBfrac(compglc) to 1.
-          call FB_getFldPtr(is_local%wrap%FBfrac(compglc), 'gfrac', gfrac, rc=rc)
+          call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compglc), 'gfrac', field=lfield, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call ESMF_FieldGet(lfield, farrayPtr=gfrac,  rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           gfrac(:) = 1.0_R8
        endif
@@ -511,7 +538,9 @@ contains
 
     if (is_local%wrap%comp_present(compwav)) then
        ! Set 'wfrac' in FBfrac(compwav) to 1.
-       call FB_getFldPtr(is_local%wrap%FBfrac(compwav), 'wfrac', wfrac, rc=rc)
+       call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compwav), 'wfrac', field=lfield, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayPtr=wfrac,  rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        wfrac(:) = 1.0_R8
     endif
@@ -639,7 +668,6 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayPtr=Si_ifrac,  rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call ESMF_FieldBundleGet(is_local%wrap%FBImp(compice,compice), fieldName='Si_imask', field=lfield, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayPtr=Si_imask,  rc=rc)
