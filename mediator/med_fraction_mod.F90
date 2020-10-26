@@ -130,9 +130,9 @@ module med_fraction_mod
   character(*), parameter :: u_FILE_u =  &
        __FILE__
 
-!-----------------------------------------------------------------------------
+!================================================================================================
 contains
-!-----------------------------------------------------------------------------
+!================================================================================================
 
   subroutine med_fraction_init(gcomp, rc)
 
@@ -252,12 +252,12 @@ contains
        call ESMF_FieldBundleGet(is_local%wrap%FBImp(compice,compice) , fieldname='Si_imask', &
             field=lfield, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, farrayPtr=Sl_lfrin,  rc=rc)
+       call ESMF_FieldGet(lfield, farrayPtr=Si_imask,  rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compice) , fieldname='ifrac', &
             field=lfield, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldGet(lfield, farrayPtr=lfrac,  rc=rc)
+       call ESMF_FieldGet(lfield, farrayPtr=ifrac,  rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        ifrac(:) = Si_imask(:)
 
@@ -602,8 +602,7 @@ contains
 
   end subroutine med_fraction_init
 
-  !-----------------------------------------------------------------------------
-
+  !================================================================================================
   subroutine med_fraction_set(gcomp, rc)
 
     ! Update time varying fractions
