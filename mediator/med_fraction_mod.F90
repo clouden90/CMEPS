@@ -744,11 +744,15 @@ contains
 
           ! Map 'ofrac' from FBfrac(compocn) to FBfrac(compatm)
           if (is_local%wrap%med_coupling_active(compocn,compatm)) then
-             call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compocn), 'ofrac', field=field_src, rc=rc)
+             call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compice), 'ofrac', field=field_src, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compatm), 'ofrac', field=field_dst, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call med_map_field(field_src, field_dst, is_local%wrap%RH(compocn,compatm,:), maptype, rc=rc)
+             call med_map_field(field_src, field_dst, is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
+             call FB_FieldRegrid(&
+                  is_local%wrap%FBfrac(compice), 'ofrac', &
+                  is_local%wrap%FBfrac(compatm), 'ofrac', &
+                  is_local%wrap%RH(compice,compatm,:), maptype, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end if ! end of if present compatm
