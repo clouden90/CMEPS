@@ -742,7 +742,7 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
-          ! Map 'ofrac' from FBfrac(compocn) to FBfrac(compatm)
+          ! Map 'ofrac' from FBfrac(compice) to FBfrac(compatm)
           if (is_local%wrap%med_coupling_active(compocn,compatm)) then
              call ESMF_FieldBundleGet(is_local%wrap%FBfrac(compice), 'ofrac', field=field_src, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
