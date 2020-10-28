@@ -15,7 +15,6 @@ module med_phases_prep_lnd_mod
   use ESMF                  , only : ESMF_RouteHandle
   use esmFlds               , only : complnd, compatm, compglc, ncomps, compname, mapconsd
   use esmFlds               , only : fldListTo
-  use med_methods_mod       , only : FB_init         => med_methods_FB_init
   use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
   use med_methods_mod       , only : FB_FldChk       => med_methods_FB_fldchk
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
