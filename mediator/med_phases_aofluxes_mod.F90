@@ -9,8 +9,7 @@ module med_phases_aofluxes_mod
   use med_methods_mod       , only : FB_fldchk    => med_methods_FB_FldChk
   use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
   use med_methods_mod       , only : FB_diagnose  => med_methods_FB_diagnose
-  use med_methods_mod       , only : FB_init      => med_methods_FB_init
-  use med_map_mod           , only : med_map_FB_Regrid_Norm
+  use med_map_mod           , only : med_map_field_packed
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
@@ -154,18 +153,15 @@ contains
     call memcheck(subname, 5, mastertask)
 
     ! TODO(mvertens, 2019-01-12): ONLY regrid atm import fields that are needed for the atm/ocn flux calculation
-
     ! Regrid atm import field bundle from atm to ocn grid as input for ocn/atm flux calculation
-    call med_map_FB_Regrid_Norm( &
-         fldsSrc=fldListFr(compatm)%flds, &
-         srccomp=compatm, destcomp=compocn, &
+    call med_map_field_packed( &
          FBSrc=is_local%wrap%FBImp(compatm,compatm), &
          FBDst=is_local%wrap%FBImp(compatm,compocn), &
          FBFracSrc=is_local%wrap%FBFrac(compatm), &
-         FBNormOne=is_local%wrap%FBNormOne(compatm,compocn,:), &
-         RouteHandles=is_local%wrap%RH(compatm,compocn,:), &
-         string=trim(compname(compatm))//'2'//trim(compname(compocn)), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+         field_normOne=is_local%wrap%field_normOne(compatm,compocn,:), &
+         packed_data=is_local%wrap%packed_data(compatm,compocn,:), &
+         routehandles=is_local%wrap%RH(compatm,compocn,:), rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Calculate atm/ocn fluxes on the destination grid
     call med_aofluxes_run(gcomp, aoflux, rc)

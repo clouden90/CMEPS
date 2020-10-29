@@ -1,13 +1,10 @@
 module med_phases_ocnalb_mod
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use shr_const_mod         , only : shr_const_pi
-  use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
-  use med_utils_mod         , only : chkerr    => med_utils_chkerr
   use med_internalstate_mod , only : InternalState, logunit
-  use med_methods_mod       , only : FB_GetFldPtr => med_methods_FB_GetFldPtr
-  use med_methods_mod       , only : FB_getFieldN => med_methods_FB_getFieldN
-  use med_methods_mod       , only : FB_diagnose => med_methods_FB_diagnose
+  use med_constants_mod     , only : dbug_flag       => med_constants_dbug_flag
+  use med_utils_mod         , only : chkerr          => med_utils_chkerr
+  use med_methods_mod       , only : FB_diagnose     => med_methods_FB_diagnose
   use med_methods_mod       , only : State_GetScalar => med_methods_State_GetScalar
   use esmFlds               , only : mapconsf, mapnames, compatm, compocn
   use perf_mod              , only : t_startf, t_stopf
@@ -24,7 +21,6 @@ module med_phases_ocnalb_mod
   !--------------------------------------------------------------------------
 
   public med_phases_ocnalb_run
-  public med_phases_ocnalb_mapo2a
 
   !--------------------------------------------------------------------------
   ! Private interfaces
@@ -77,9 +73,9 @@ contains
     !-----------------------------------------------------------------------
 
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS, ESMF_FAILURE
-    use ESMF , only : ESMF_GridComp, ESMF_VM, ESMF_Field, ESMF_Grid, ESMF_Mesh, ESMF_GeomType_Flag
-    use ESMF , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_FieldGet, ESMF_GEOMTYPE_MESH
-    use ESMF , only : ESMF_MeshGet
+    use ESMF , only : ESMF_VM, ESMF_VMGet, ESMF_Mesh, ESMF_MeshGet
+    use ESMF , only : ESMF_GridComp, ESMF_GridCompGet
+    use ESMF , only : ESMF_FieldBundleGet, ESMF_Field, ESMF_FieldGet
     use ESMF , only : operator(==)
 
     ! Arguments
@@ -92,7 +88,6 @@ contains
     integer                  :: iam
     type(ESMF_Field)         :: lfield
     type(ESMF_Mesh)          :: lmesh
-    type(ESMF_GeomType_Flag) :: geomtype
     integer                  :: n
     integer                  :: lsize
     integer                  :: dimCount
@@ -102,6 +97,8 @@ contains
     real(R8), pointer        :: ownedElemCoords(:)
     character(len=CL)        :: tempc1,tempc2
     logical                  :: mastertask
+    integer                  :: fieldCount
+    type(ESMF_Field), pointer :: fieldlist(:) => null()
     character(*), parameter  :: subname = '(med_phases_ocnalb_init) '
     !-----------------------------------------------------------------------
 
@@ -130,13 +127,24 @@ contains
     ! These must must be on the ocean grid since the ocean albedo computation is on the ocean grid
     ! The following sets pointers to the module arrays
 
-    call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_avsdr', fldptr1=ocnalb%avsdr, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBMed_ocnalb_o, fieldname='So_avsdr', field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_avsdf', fldptr1=ocnalb%avsdf, rc=rc)
+    call ESMF_FieldGet(lfield, farrayptr=ocnalb%avsdr, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_anidr', fldptr1=ocnalb%anidr, rc=rc)
+
+    call ESMF_FieldBundleGet(is_local%wrap%FBMed_ocnalb_o, fieldname='So_avsdf', field=lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call FB_GetFldPtr(is_local%wrap%FBMed_ocnalb_o, fldname='So_anidf', fldptr1=ocnalb%anidf, rc=rc)
+    call ESMF_FieldGet(lfield, farrayptr=ocnalb%avsdf, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_FieldBundleGet(is_local%wrap%FBMed_ocnalb_o, fieldname='So_anidr', field=lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayptr=ocnalb%anidr, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_FieldBundleGet(is_local%wrap%FBMed_ocnalb_o, fieldname='So_anidf', field=lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayptr=ocnalb%anidf, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     !----------------------------------
@@ -145,42 +153,34 @@ contains
 
     ! The following assumes that all fields in FBMed_ocnalb_o have the same grid - so
     ! only need to query field 1
-    call FB_getFieldN(is_local%wrap%FBMed_ocnalb_o, fieldnum=1, field=lfield, rc=rc)
+    call ESMF_FieldBundleGet(is_local%wrap%FBMed_ocnalb_o, fieldCount=fieldCount, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    allocate(fieldlist(fieldcount))
+    call ESMF_FieldBundleGet(is_local%wrap%FBMed_ocnalb_o, fieldlist=fieldlist, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(fieldlist(1), mesh=lmesh, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! Determine if first field is on a grid or a mesh - default will be mesh
-    call ESMF_FieldGet(lfield, geomtype=geomtype, rc=rc)
+    deallocate(fieldlist)
+    call ESMF_MeshGet(lmesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    if (geomtype == ESMF_GEOMTYPE_MESH) then
-       call ESMF_LogWrite(trim(subname)//" : FBAtm is on a mesh ", ESMF_LOGMSG_INFO)
-       call ESMF_FieldGet(lfield, mesh=lmesh, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_MeshGet(lmesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       lsize = size(ocnalb%anidr)
-       if (numOwnedElements /= lsize) then
-          write(tempc1,'(i10)') numOwnedElements
-          write(tempc2,'(i10)') lsize
-          call ESMF_LogWrite(trim(subname)//": ERROR numOwnedElements "// trim(tempc1) // &
-               " not equal to local size "// trim(tempc2), ESMF_LOGMSG_INFO)
-          rc = ESMF_FAILURE
-          return
-       end if
-       allocate(ownedElemCoords(spatialDim*numOwnedElements))
-       allocate(ocnalb%lons(numOwnedElements))
-       allocate(ocnalb%lats(numOwnedElements))
-       call ESMF_MeshGet(lmesh, ownedElemCoords=ownedElemCoords)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       do n = 1,lsize
-          ocnalb%lons(n) = ownedElemCoords(2*n-1)
-          ocnalb%lats(n) = ownedElemCoords(2*n)
-       end do
-    else
-      call ESMF_LogWrite(trim(subname)//": ERROR field bundle must be either on mesh", ESMF_LOGMSG_INFO)
-      rc = ESMF_FAILURE
-      return
+    lsize = size(ocnalb%anidr)
+    if (numOwnedElements /= lsize) then
+       write(tempc1,'(i10)') numOwnedElements
+       write(tempc2,'(i10)') lsize
+       call ESMF_LogWrite(trim(subname)//": ERROR numOwnedElements "// trim(tempc1) // &
+            " not equal to local size "// trim(tempc2), ESMF_LOGMSG_INFO)
+       rc = ESMF_FAILURE
+       return
     end if
+    allocate(ownedElemCoords(spatialDim*numOwnedElements))
+    allocate(ocnalb%lons(numOwnedElements))
+    allocate(ocnalb%lats(numOwnedElements))
+    call ESMF_MeshGet(lmesh, ownedElemCoords=ownedElemCoords)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    do n = 1,lsize
+       ocnalb%lons(n) = ownedElemCoords(2*n-1)
+       ocnalb%lats(n) = ownedElemCoords(2*n)
+    end do
 
     ! Initialize orbital values
     call  med_phases_ocnalb_orbital_init(gcomp, logunit, iam==0, rc)
@@ -201,14 +201,16 @@ contains
     ! Compute ocean albedos (on the ocean grid)
     !-----------------------------------------------------------------------
 
-    use ESMF  , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_TimeInterval
-    use ESMF  , only : ESMF_Clock, ESMF_ClockGet, ESMF_Time, ESMF_TimeGet
-    use ESMF  , only : ESMF_VM, ESMF_VMGet
-    use ESMF  , only : ESMF_LogWrite, ESMF_LogFoundError
-    use ESMF  , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO 
-    use ESMF  , only : ESMF_FieldBundleIsCreated
-    use ESMF  , only : operator(+)
-    use NUOPC , only : NUOPC_CompAttributeGet
+    use ESMF          , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_TimeInterval
+    use ESMF          , only : ESMF_Clock, ESMF_ClockGet, ESMF_Time, ESMF_TimeGet
+    use ESMF          , only : ESMF_VM, ESMF_VMGet
+    use ESMF          , only : ESMF_LogWrite, ESMF_LogFoundError
+    use ESMF          , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LOGMSG_INFO 
+    use ESMF          , only : ESMF_Field, ESMF_FieldGet
+    use ESMF          , only : ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
+    use ESMF          , only : operator(+)
+    use NUOPC         , only : NUOPC_CompAttributeGet
+    use shr_const_mod , only : shr_const_pi
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -217,6 +219,7 @@ contains
     ! local variables
     type(ocnalb_type), save :: ocnalb
     type(ESMF_VM)           :: vm
+    type(ESMF_Field)        :: lfield
     integer                 :: iam
     logical                 :: update_alb
     type(InternalState)     :: is_local
@@ -408,13 +411,21 @@ contains
 
     ! Update current ifrad/ofrad values if albedo was updated in field bundle
     if (update_alb) then
-       call FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ifrac', fldptr1=ifrac, rc=rc)
+       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compocn), fieldname='ifrac', field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ifrad', fldptr1=ifrad, rc=rc)
+       call ESMF_FieldGet(lfield, farrayptr=ifrac, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ofrac', fldptr1=ofrac, rc=rc)
+       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compocn), fieldname='ifrad', field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_getFldPtr(is_local%wrap%FBfrac(compocn), fldname='ofrad', fldptr1=ofrad, rc=rc)
+       call ESMF_FieldGet(lfield, farrayptr=ifrad, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compocn), fieldname='ofrac', field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayptr=ofrac, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldBundleGet(is_local%wrap%FBFrac(compocn), fieldname='ofrad', field=lfield, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield, farrayptr=ofrad, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        ifrad(:) = ifrac(:)
        ofrad(:) = ofrac(:)
@@ -429,55 +440,6 @@ contains
 #endif
 
   end subroutine med_phases_ocnalb_run
-
-  !===============================================================================
-
-  subroutine med_phases_ocnalb_mapo2a(gcomp, rc)
-
-    !----------------------------------------------------------
-    ! Map ocean albedos from ocn to atm grid
-    !----------------------------------------------------------
-
-    use ESMF        , only : ESMF_GridComp
-    use ESMF        , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use med_map_mod , only : med_map_FB_Regrid_Norm
-    use esmFlds     , only : fldListMed_ocnalb
-    use esmFlds     , only : compatm, compocn
-
-    ! Arguments
-    type(ESMF_GridComp)    :: gcomp
-    integer, intent(out)   :: rc
-
-    ! Local variables
-    type(InternalState) :: is_local
-    character(*), parameter :: subName =   '(med_ocnalb_mapo2a) '
-    !-----------------------------------------------------------------------
-    call t_startf('MED:'//subname)
-
-    if (dbug_flag > 5) then
-      call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-    endif
-    rc = ESMF_SUCCESS
-
-    ! Get the internal state from gcomp
-    nullify(is_local%wrap)
-    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! Map the field bundle from the ocean to the atm grid
-    call med_map_FB_Regrid_Norm( &
-         fldsSrc=fldListMed_ocnalb%flds, &
-         srccomp=compocn, destcomp=compatm, &
-         FBSrc=is_local%wrap%FBMed_ocnalb_o, &
-         FBDst=is_local%wrap%FBMed_ocnalb_a, &
-         FBFracSrc=is_local%wrap%FBFrac(compocn), &
-         FBNormOne=is_local%wrap%FBNormOne(compocn,compatm,:), &
-         RouteHandles=is_local%wrap%RH(compocn,compatm,:), &
-         string='FBMed_ocnalb_o_To_FBMed_ocnalb_a', rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call t_stopf('MED:'//subname)
-
-  end subroutine med_phases_ocnalb_mapo2a
 
 !===============================================================================
 
