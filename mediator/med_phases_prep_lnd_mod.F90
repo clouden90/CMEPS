@@ -134,19 +134,16 @@ contains
        !---------------------------------------
        ! custom calculations
        !---------------------------------------
-       if ( FB_fldchk(is_local%wrap%FBExp(complnd), trim(Sg_icemask), rc=rc) .and. & 
-            FB_fldchk(is_local%wrap%FBExp(complnd), trim(Sg_frac), rc=rc)) then
-          ! The following is only done if glc->lnd coupling is active
-          if (is_local%wrap%comp_present(compglc) .and. (is_local%wrap%med_coupling_active(compglc,complnd))) then
-             if (first_call) then
-                call map_glc2lnd_init(gcomp, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             end if
 
-             ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
-             call map_glc2lnd(gcomp, rc=rc)
+       ! The following is only done if glc->lnd coupling is active
+       if (is_local%wrap%comp_present(compglc) .and. (is_local%wrap%med_coupling_active(compglc,complnd))) then
+          if (first_call) then
+             call map_glc2lnd_init(gcomp, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
+          ! The will following will map and merge Sg_frac and Sg_topo (and in the future Flgg_hflx)
+          call map_glc2lnd(gcomp, rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
        !---------------------------------------
@@ -275,13 +272,6 @@ contains
          ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    field_frac_x_icemask_g_ec = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, &
-         ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    field_frac_x_icemask_l_ec = ESMF_FieldCreate(lmesh_lnd, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, &
-         ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
     field_topo_x_icemask_g_ec = ESMF_FieldCreate(lmesh_glc, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, &
          ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -289,7 +279,7 @@ contains
          ungriddedLbound=(/1/), ungriddedUbound=(/ungriddedCount/), gridToFieldMap=(/2/), rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    !Verify that route handle has been created
+    ! Verify that route handle has been created
     if (.not. med_map_RH_is_created(is_local%wrap%RH(compglc,complnd,:), mapconsd,rc=rc)) then
        call ESMF_LogWrite(trim(subname)//": ERROR conservative route handle not created for glc->lnd mapping", &
             ESMF_LOGMSG_ERROR)
