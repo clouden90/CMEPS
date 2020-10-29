@@ -624,11 +624,11 @@ contains
 
     ! local variables
     type(InternalState)        :: is_local
-    real(r8), pointer          :: lfrac(:)
-    real(r8), pointer          :: ifrac(:)
-    real(r8), pointer          :: ofrac(:)
-    real(r8), pointer          :: Si_ifrac(:)
-    real(r8), pointer          :: Si_imask(:)
+    real(r8), pointer          :: lfrac(:) => null()
+    real(r8), pointer          :: ifrac(:) => null()
+    real(r8), pointer          :: ofrac(:) => null()
+    real(r8), pointer          :: Si_ifrac(:) => null()
+    real(r8), pointer          :: Si_imask(:) => null()
     type(ESMF_Field)           :: lfield
     type(ESMF_Field)           :: field_src
     type(ESMF_Field)           :: field_dst

@@ -315,18 +315,18 @@ contains
     type(ESMF_Field)      :: lfield
     integer               :: ec, l, g
     real(r8)              :: topo_virtual
-    real(r8), pointer     :: icemask_g(:)             ! glc ice mask field on glc grid
-    real(r8), pointer     :: frac_g(:)                ! total ice fraction in each glc cell
-    real(r8), pointer     :: frac_g_ec(:,:)           ! glc fractions on the glc grid
-    real(r8), pointer     :: frac_l_ec(:,:)           ! glc fractions on the land grid
-    real(r8), pointer     :: topo_g(:)                ! topographic height of each glc cell (no elevation classes)
-    real(r8), pointer     :: topo_l_ec(:,:)           ! topographic height in each land gridcell for each elevation class
-    real(r8), pointer     :: frac_x_icemask_g_ec(:,:) ! (glc fraction) x (icemask), on the glc grid
-    real(r8), pointer     :: frac_x_icemask_l_ec(:,:)
-    real(r8), pointer     :: topo_x_icemask_g_ec(:,:)
-    real(r8), pointer     :: topo_x_icemask_l_ec(:,:)
-    real(r8), pointer     :: dataptr1d(:)
-    real(r8), pointer     :: dataptr2d(:,:)
+    real(r8), pointer     :: icemask_g(:) => null()   ! glc ice mask field on glc grid
+    real(r8), pointer     :: frac_g(:) => null()      ! total ice fraction in each glc cell
+    real(r8), pointer     :: frac_g_ec(:,:) => null() ! glc fractions on the glc grid
+    real(r8), pointer     :: frac_l_ec(:,:) => null() ! glc fractions on the land grid
+    real(r8), pointer     :: topo_g(:) => null()      ! topographic height of each glc cell (no elevation classes)
+    real(r8), pointer     :: topo_l_ec(:,:) => null() ! topographic height in each land gridcell for each elevation class
+    real(r8), pointer     :: frac_x_icemask_g_ec(:,:) => null() ! (glc fraction) x (icemask), on the glc grid
+    real(r8), pointer     :: frac_x_icemask_l_ec(:,:) => null()
+    real(r8), pointer     :: topo_x_icemask_g_ec(:,:) => null()
+    real(r8), pointer     :: topo_x_icemask_l_ec(:,:) => null()
+    real(r8), pointer     :: dataptr1d(:) => null()
+    real(r8), pointer     :: dataptr2d(:,:) => null()
     character(len=*), parameter :: subname = 'map_glc2lnd'
     !-----------------------------------------------------------------------
 
