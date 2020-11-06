@@ -304,7 +304,11 @@ contains
 
              !--- shift wind speed using old coefficient ---
              rd   = rdn / (1.0_R8 + rdn/loc_karman*(alz-psimh))
-             u10n = vmag * rd / rdn
+             if (ocn_surface_flux_scheme == -1)then
+                u10n = vmag
+             else
+                u10n = vmag * rd / rdn
+             end if
 
              !--- update transfer coeffs at 10m and neutral stability ---
              rdn = sqrt(cdn(u10n))
@@ -313,7 +317,11 @@ contains
              !(1.0_R8-stable) * chxcdu + stable * chxcds
 
              !--- shift all coeffs to measurement height and stability ---
-             rd = rdn / (1.0_R8 + rdn/loc_karman*(alz-psimh))
+             if (ocn_surface_flux_scheme == -1)then
+               rd = rdn
+             else
+               rd = rdn / (1.0_R8 + rdn/loc_karman*(alz-psimh))
+             end if
              rh = rhn / (1.0_R8 + rhn/loc_karman*(alz-psixh))
              re = ren / (1.0_R8 + ren/loc_karman*(alz-psixh))
 
