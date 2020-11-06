@@ -232,13 +232,13 @@ contains
     ! get attributes that are set as module variables
     !----------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
-    read(cvalue,*) flds_wiso
-
-    !----------------------------------
-    ! Get config variables on first call
-    !----------------------------------
+    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) flds_wiso
+    else
+       flds_wiso = .false.
+    end if
 
     call NUOPC_CompAttributeGet(gcomp, name='coldair_outbreak_mod', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -357,7 +357,7 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     ! bulk formula quantities for nems_orig_data
-    if (trim(coupling_mode) == 'nems_orig_data' && ocn_surface_flux_scheme == -1)then
+    if (trim(coupling_mode) == 'nems_orig_data' .and. ocn_surface_flux_scheme == -1) then
        call FB_GetFldPtr(FBAtm, fldname='Sa_u10m', fldptr1=aoflux%ubot, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(FBAtm, fldname='Sa_v10m', fldptr1=aoflux%vbot, rc=rc)
