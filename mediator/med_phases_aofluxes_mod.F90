@@ -362,9 +362,9 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call FB_GetFldPtr(FBAtm, fldname='Sa_v10m', fldptr1=aoflux%vbot, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBAtm, fldname='Sa_tbot', fldptr1=aoflux%tbot, rc=rc)
+       call FB_GetFldPtr(FBAtm, fldname='Sa_t2m', fldptr1=aoflux%tbot, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call FB_GetFldPtr(FBAtm, fldname='Sa_shum', fldptr1=aoflux%shum, rc=rc)
+       call FB_GetFldPtr(FBAtm, fldname='Sa_q2m', fldptr1=aoflux%shum, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     else
        call FB_GetFldPtr(FBAtm, fldname='Sa_u', fldptr1=aoflux%ubot, rc=rc)
