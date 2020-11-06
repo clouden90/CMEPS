@@ -86,7 +86,7 @@ contains
   end subroutine shr_flux_adjust_constants
 
   !===============================================================================
-  subroutine shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   & 
+  subroutine shr_flux_atmOcn(nMax  ,zbot  ,ubot  ,vbot  ,thbot ,   &
        &               qbot  ,s16O  ,sHDO  ,s18O  ,rbot  ,   &
        &               tbot  ,us    ,vs    ,   &
        &               ts    ,mask  ,seq_flux_atmocn_minwind, &
@@ -149,7 +149,7 @@ contains
     real(R8),parameter :: zref  = 10.0_R8 ! reference height           (m)
     real(R8),parameter :: ztref =  2.0_R8 ! reference height for air T (m)
     !!++ Large only
-    !real(R8),parameter :: cexcd  = 0.0346_R8 ! ratio Ch(water)/CD 
+    !real(R8),parameter :: cexcd  = 0.0346_R8 ! ratio Ch(water)/CD
     !real(R8),parameter :: chxcds = 0.018_R8  ! ratio Ch(heat)/CD for stable case
     !real(R8),parameter :: chxcdu = 0.0327_R8 ! ratio Ch(heat)/CD for unstable case
     !!++ COARE only
@@ -176,7 +176,7 @@ contains
     real(R8)    :: hol    ! H (at zbot) over L
     real(R8)    :: xsq    ! ?
     real(R8)    :: xqq    ! ?
-    !!++ Large only  
+    !!++ Large only
     real(R8)    :: psimh  ! stability function at zbot (momentum)
     real(R8)    :: psixh  ! stability function at zbot (heat and water)
     real(R8)    :: psix2  ! stability function at ztref reference height
@@ -192,7 +192,6 @@ contains
     real(R8)    :: hsb,hlb         ! sens & lat heat flxs at zbot
     real(R8) :: trf,qrf,urf,vrf ! reference-height quantities
 
-
     !--- local functions --------------------------------
     real(R8)    :: qsat   ! function: the saturation humididty of air (kg/m^3)
     !!++ Large only (formula v*=[c4/U10+c5+c6*U10]*U10 in Large et al. 1994)
@@ -206,7 +205,6 @@ contains
     !--- for cold air outbreak calc --------------------------------
     real(R8)    :: tdiff(nMax)               ! tbot - ts
     real(R8)    :: vscl
-
 
     qsat(Tk)   = 640380.0_R8 / exp(5107.4_R8/Tk)
     cdn(Umps)  =   0.0027_R8 / Umps + 0.000142_R8 + 0.0000764_R8 * Umps
@@ -281,7 +279,7 @@ contains
           !--- neutral coefficients, z/L = 0.0 ---
           stable = 0.5_R8 + sign(0.5_R8 , delt)
           rdn    = sqrt(cdn(vmag))
-          rhn    = (1.0_R8-stable) * 0.0327_R8 + stable * 0.018_R8 
+          rhn    = (1.0_R8-stable) * 0.0327_R8 + stable * 0.018_R8
           !(1.0_R8-stable) * chxcdu + stable * chxcds
           ren    = 0.0346_R8 !cexcd
 
