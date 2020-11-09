@@ -249,8 +249,6 @@ contains
     !--- for cold air outbreak calc --------------------------------
     tdiff= tbot - ts
 
-    ! Assume that ocn_surface_flux_scheme = 0 for NEMS
-    ! Default flux scheme.
     al2 = log(zref/ztref)
     DO n=1,nMax
        if (mask(n) /= 0) then
