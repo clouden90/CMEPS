@@ -75,6 +75,8 @@ contains
     ! Mediator fields
     !=====================================================================
 
+    ! ofrac used by atm
+    call addfld(fldListFr(compatm)%flds, 'Sa_ofrac')
     ! masks from components
     call addfld(fldListFr(compice)%flds, 'Si_imask')
     call addfld(fldListFr(compocn)%flds, 'So_omask')
@@ -121,9 +123,9 @@ contains
 
     ! to atm: unmerged from ice
     ! - zonal surface stress, meridional surface stress
-    ! - surface latent heat flux, 
+    ! - surface latent heat flux,
     ! - surface sensible heat flux
-    ! - surface upward longwave heat flux 
+    ! - surface upward longwave heat flux
     ! - evaporation water flux from water
     ! - mean ice volume per unit area
     ! - mean snow volume per unit area
@@ -242,7 +244,7 @@ contains
        end do
        deallocate(flds)
 
-       ! to ocn: long wave net via auto merge 
+       ! to ocn: long wave net via auto merge
        call addfld(fldListTo(compocn)%flds, 'Foxx_lwnet')
        call addfld(fldListFr(compatm)%flds, 'Faxa_lwdn')
        call addmap(fldListFr(compatm)%flds, 'Faxa_lwdn', compocn, maptype, 'none', 'unset')
