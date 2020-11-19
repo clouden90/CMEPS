@@ -351,7 +351,7 @@ contains
           endif
 
           ! Write out next ymd/tod in place of curr ymd/tod because the
-          ! restart represents the time at end of the current timestep 
+          ! restart represents the time at end of the current timestep
           ! and that is where we want to start the next run.
 
           call med_io_write(restart_file, iam, start_ymd, 'start_ymd', whead=whead, wdata=wdata, rc=rc)

@@ -166,7 +166,7 @@ contains
     type(ESMF_Field)          :: field_irrig_flux
     integer                   :: fieldcount
     type(ESMF_Field), pointer :: fieldlist(:) => null()
-    integer                   :: ungriddedUBound(1)     
+    integer                   :: ungriddedUBound(1)
     character(len=*),parameter  :: subname='(med_phases_prep_rof_mod: med_phases_prep_rof_avg)'
     !---------------------------------------
 
