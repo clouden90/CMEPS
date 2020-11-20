@@ -69,7 +69,6 @@ module med_phases_aofluxes_mod
      real(R8) , pointer :: qref        (:) => null() ! diagnostic:  2m ref Q
      real(R8) , pointer :: u10         (:) => null() ! diagnostic: 10m wind speed
      real(R8) , pointer :: duu10n      (:) => null() ! diagnostic: 10m wind speed squared
-     real(R8) , pointer :: lwdn        (:) => null() ! long  wave, downward
      real(R8) , pointer :: ustar       (:) => null() ! saved ustar
      real(R8) , pointer :: re          (:) => null() ! saved re
      real(R8) , pointer :: ssq         (:) => null() ! saved sq
