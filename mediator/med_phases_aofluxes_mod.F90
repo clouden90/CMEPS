@@ -398,8 +398,13 @@ contains
 
     ! if either density or potential temperature are computed, will need bottom level pressure
     if (compute_atm_dens .or. compute_atm_thbot) then
-       call FB_GetFldPtr(FBAtm, fldname='Sa_pbot', fldptr1=aoflux%pbot, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (ocn_surface_flux_scheme == -1) then
+          call FB_GetFldPtr(FBAtm, fldname='Sa_pslv', fldptr1=aoflux%pbot, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       else
+          call FB_GetFldPtr(FBAtm, fldname='Sa_pbot', fldptr1=aoflux%pbot, rc=rc)
+          if (chkerr(rc,__LINE__,u_FILE_u)) return
+       end if
     end if
 
     if (flds_wiso) then
