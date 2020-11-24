@@ -174,6 +174,7 @@ contains
     real(R8)    :: qstar  ! qstar
     real(R8)    :: tstar  ! tstar
     real(R8)    :: hol    ! H (at zbot) over L
+    real(R8)    :: htol   ! YC
     real(R8)    :: xsq    ! ?
     real(R8)    :: xqq    ! ?
     !!++ Large only
@@ -181,6 +182,7 @@ contains
     real(R8)    :: psixh  ! stability function at zbot (heat and water)
     real(R8)    :: psix2  ! stability function at ztref reference height
     real(R8)    :: alz    ! ln(zbot/zref)
+    real(R8)    :: alzt   ! YC
     real(R8)    :: al2    ! ln(zref/ztref)
     real(R8)    :: u10n   ! 10m neutral wind
     real(R8)    :: tau    ! stress at zbot
@@ -268,7 +270,13 @@ contains
           ssq    = 0.98_R8 * qsat(ts(n)) / rbot(n)   ! sea surf hum (kg/kg)
           delt   = thbot(n) - ts(n)                  ! pot temp diff (K)
           delq   = qbot(n) - ssq                     ! spec hum dif (kg/kg)
-          alz    = log(zbot(n)/zref)
+          !alz    = log(zbot(n)/zref)
+          if (ocn_surface_flux_scheme == -1) then
+             alz    = log(10.0_R8/zref) !YC
+             alzt   = log(2.0_R8/zref)  !YC
+          else
+             alz    = log(zbot(n)/zref)
+          end if          
           cp     = loc_cpdair*(1.0_R8 + loc_cpvir*ssq)
 
           !------------------------------------------------------------
@@ -291,22 +299,32 @@ contains
              iter = iter + 1
              ustar_prev = ustar
              !--- compute stability & evaluate all stability functions ---
-             hol  = loc_karman*loc_g*zbot(n)*  &
-                  (tstar/thbot(n)+qstar/(1.0_R8/loc_zvir+qbot(n)))/ustar**2
+             !hol  = loc_karman*loc_g*zbot(n)*  &
+             !     (tstar/thbot(n)+qstar/(1.0_R8/loc_zvir+qbot(n)))/ustar**2
+             if (ocn_surface_flux_scheme == -1) then
+                 hol  = loc_karman*loc_g*10.0_R8*  &
+                       (tstar/thbot(n)+qstar/(1.0_R8/loc_zvir+qbot(n)))/ustar**2
+             else
+                 hol  = loc_karman*loc_g*zbot(n)*  &
+                        (tstar/thbot(n)+qstar/(1.0_R8/loc_zvir+qbot(n)))/ustar**2             
+             end if                  
              hol  = sign( min(abs(hol),10.0_R8), hol )
              stable = 0.5_R8 + sign(0.5_R8 , hol)
              xsq    = max(sqrt(abs(1.0_R8 - 16.0_R8*hol)) , 1.0_R8)
              xqq    = sqrt(xsq)
              psimh  = -5.0_R8*hol*stable + (1.0_R8-stable)*psimhu(xqq)
-             psixh  = -5.0_R8*hol*stable + (1.0_R8-stable)*psixhu(xqq)
+             if (ocn_surface_flux_scheme == -1) then
+                htol = hol*2.0_R8/10.0_R8
+                xsq    = max(sqrt(abs(1.0_R8 - 16.0_R8*htol)) , 1.0_R8)
+                xqq    = sqrt(xsq)
+                psixh  = -5.0_R8*htol*stable + (1.0_R8-stable)*psixhu(xqq)
+             else
+                psixh  = -5.0_R8*hol*stable + (1.0_R8-stable)*psixhu(xqq)
+             end if            
 
              !--- shift wind speed using old coefficient ---
              rd   = rdn / (1.0_R8 + rdn/loc_karman*(alz-psimh))
-             if (ocn_surface_flux_scheme == -1)then
-                u10n = vmag
-             else
-                u10n = vmag * rd / rdn
-             end if
+             u10n = vmag * rd / rdn
 
              !--- update transfer coeffs at 10m and neutral stability ---
              rdn = sqrt(cdn(u10n))
@@ -315,13 +333,14 @@ contains
              !(1.0_R8-stable) * chxcdu + stable * chxcds
 
              !--- shift all coeffs to measurement height and stability ---
+             rd = rdn / (1.0_R8 + rdn/loc_karman*(alz-psimh))
              if (ocn_surface_flux_scheme == -1)then
-               rd = rdn
+               rh = rhn / (1.0_R8 + rhn/loc_karman*(alzt-psixh))
+               re = ren / (1.0_R8 + ren/loc_karman*(alzt-psixh))
              else
-               rd = rdn / (1.0_R8 + rdn/loc_karman*(alz-psimh))
+                rh = rhn / (1.0_R8 + rhn/loc_karman*(alz-psixh))
+                re = ren / (1.0_R8 + ren/loc_karman*(alz-psixh))
              end if
-             rh = rhn / (1.0_R8 + rhn/loc_karman*(alz-psixh))
-             re = ren / (1.0_R8 + ren/loc_karman*(alz-psixh))
 
              !--- update ustar, tstar, qstar using updated, shifted coeffs --
              ustar = rd * vmag
@@ -353,7 +372,11 @@ contains
           !------------------------------------------------------------
           ! compute diagnositcs: 2m ref T & Q, 10m wind speed squared
           !------------------------------------------------------------
-          hol = hol*ztref/zbot(n)
+          if ( ocn_surface_flux_scheme == -1 ) then
+             hol = hol*ztref/10.0_R8
+          else
+            hol = hol*ztref/zbot(n)
+          end if          
           xsq = max( 1.0_R8, sqrt(abs(1.0_R8-16.0_R8*hol)) )
           xqq = sqrt(xsq)
           psix2   = -5.0_R8*hol*stable + (1.0_R8-stable)*psixhu(xqq)
